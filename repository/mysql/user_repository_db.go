@@ -25,15 +25,15 @@ func (d *MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
 	return false, nil
 }
 
-func (d *MySQLDB) Register(u entity.User) (entity.User, error) {
-	res, err := d.db.Exec(`INSERT INTO user (name, phone_number) VALUES (?, ?)`, u.Name, u.PhoneNumber)
+func (d *MySQLDB) Register(u entity.User) (*entity.User, error) {
+	res, err := d.db.Exec(`INSERT INTO user (name, phone_number, password) VALUES (?, ?,?)`, u.Name, u.PhoneNumber, u.Password)
 	if err != nil {
-		return entity.User{}, fmt.Errorf("unxepected error => %w", err)
+		return nil, fmt.Errorf("unxepected error => %w", err)
 	}
 
 	id, _ := res.LastInsertId()
 
-	return entity.User{
+	return &entity.User{
 		ID:          uint(id),
 		Name:        u.Name,
 		PhoneNumber: u.PhoneNumber,

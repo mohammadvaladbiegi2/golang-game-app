@@ -1,4 +1,4 @@
-package category_service
+package categoryservice
 
 import (
 	"errors"
@@ -6,36 +6,34 @@ import (
 	"gamegolang/entity"
 )
 
+// CategoryRepository تعریف اینترفیس ریپازیتوری
 type CategoryRepository interface {
-	CreateCategory(req CreateCategoryRequestStruct) (entity.Category, error)
+	Create(req CreateRequest) (*entity.Category, error)
 }
 
-type CategoryService struct {
+// Service ساختار سرویس دسته‌بندی
+type Service struct {
 	Repo CategoryRepository
 }
 
-type CreateCategoryRequestStruct struct {
-	Title       string
-	Description string
+// CreateRequest ساختار درخواست ایجاد دسته‌بندی
+type CreateRequest struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
 }
 
-type CreateCategoryResponseStruct struct {
-	Category entity.Category
-}
-
-func (receiver CategoryService) CreateCategory(req CreateCategoryRequestStruct) (CreateCategoryResponseStruct, error) {
-
+// Create ایجاد یک دسته‌بندی جدید
+func (s Service) Create(req CreateRequest) (*entity.Category, error) {
+	// اعتبارسنجی ورودی‌ها
 	if req.Title == "" {
-		return CreateCategoryResponseStruct{}, errors.New("title is required")
+		return nil, errors.New("title is required")
 	}
 
-	newCategory, Cerror := receiver.Repo.CreateCategory(req)
-	if Cerror != nil {
-		return CreateCategoryResponseStruct{}, fmt.Errorf("create category error: %w", Cerror)
+	// ایجاد دسته‌بندی در ریپازیتوری
+	category, err := s.Repo.Create(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create category: %w", err)
 	}
 
-	return CreateCategoryResponseStruct{
-		Category: newCategory,
-	}, nil
-
+	return category, nil
 }

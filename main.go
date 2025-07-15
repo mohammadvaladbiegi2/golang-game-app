@@ -60,20 +60,45 @@ func RegisterUser(res http.ResponseWriter, req *http.Request) {
 		case "phone number is not valid":
 			res.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(res, "phone number is not valid")
+			return
 
 		case "phone number is not unique":
 			res.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(res, "phone number is not unique")
+			return
+
+		case "password length should be greater than 8":
+			res.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(res, "password length should be greater than 8")
+			return
+
+		case "name length should be greater than 3":
+			res.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(res, "name length should be greater than 3")
+			return
 
 		default:
 			res.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(res, RegisterUserError.Error())
+			return
 		}
 
 	}
 
+	response := struct {
+		ID          uint
+		Name        string
+		PhoneNumber string
+		Password    string
+	}{
+		ID:          respons.ID,
+		Name:        respons.Name,
+		PhoneNumber: respons.PhoneNumber,
+		Password:    "*********",
+	}
+
 	res.WriteHeader(http.StatusCreated)
-	fmt.Fprint(res, respons.User)
+	json.NewEncoder(res).Encode(response)
 	return
 
 }
@@ -98,7 +123,7 @@ func CreateCategory(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	defer req.Body.Close()
-	var bodyData category_service.CreateCategoryRequestStruct
+	var bodyData categoryservice.CreateRequest
 	MarshalError := json.Unmarshal(bData, &bodyData)
 	if MarshalError != nil {
 		res.WriteHeader(http.StatusInternalServerError)
@@ -107,15 +132,16 @@ func CreateCategory(res http.ResponseWriter, req *http.Request) {
 	}
 
 	mysqlRepo := mysql.NewDB()
-	categoryRepo := category_service.CategoryService{
+	categoryRepo := categoryservice.Service{
 		Repo: mysqlRepo,
 	}
 
-	resultCreateCategory, ErrorCreateCategory := categoryRepo.CreateCategory(bodyData)
+	resultCreateCategory, ErrorCreateCategory := categoryRepo.Create(bodyData)
 	if ErrorCreateCategory != nil {
 		fmt.Println(ErrorCreateCategory)
 		res.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(res, ErrorCreateCategory.Error())
+		return
 	}
 
 	response := struct {
@@ -123,9 +149,9 @@ func CreateCategory(res http.ResponseWriter, req *http.Request) {
 		Title       string
 		Description string
 	}{
-		ID:          resultCreateCategory.Category.ID,
-		Title:       resultCreateCategory.Category.Title,
-		Description: resultCreateCategory.Category.Description,
+		ID:          resultCreateCategory.ID,
+		Title:       resultCreateCategory.Title,
+		Description: resultCreateCategory.Description,
 	}
 
 	res.WriteHeader(http.StatusCreated)
