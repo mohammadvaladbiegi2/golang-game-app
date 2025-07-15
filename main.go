@@ -11,17 +11,7 @@ import (
 )
 
 func main() {
-	//mysqlRepo := mysql.NewDB()
-	//
-	//if status, err := mysqlRepo.IsPhoneNumberUnique("0918"); err != nil {
-	//	fmt.Println(err)
-	//} else {
-	//	if status {
-	//		fmt.Println("user is have uniq phone")
-	//	} else {
-	//		fmt.Println("user is not have uniq phone")
-	//	}
-	//}
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/sign-up", RegisterUser)
