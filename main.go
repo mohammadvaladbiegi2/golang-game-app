@@ -16,8 +16,9 @@ func main() {
 
 	mux.HandleFunc("/sign-up", RegisterUser)
 	mux.HandleFunc("/create-category", CreateCategory)
-	fmt.Println("Server starting on port 3000...")
-	if err := http.ListenAndServe(":3000", mux); err != nil {
+	mux.HandleFunc("/login", Login)
+	fmt.Println("Server starting on port 5000...")
+	if err := http.ListenAndServe(":5000", mux); err != nil {
 		fmt.Printf("Server error: %v\n", err)
 	}
 }
@@ -51,7 +52,7 @@ func RegisterUser(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	mysqlRepo := mysql.NewDB()
-	userRepo := userservice.Service{Repo: mysqlRepo}
+	userRepo := userservice.RegisterService{Repo: mysqlRepo}
 
 	respons, RegisterUserError := userRepo.Register(UserRequestStruct)
 	if RegisterUserError != nil {
@@ -157,4 +158,70 @@ func CreateCategory(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusCreated)
 	json.NewEncoder(res).Encode(response)
 	return
+}
+
+func Login(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
+	errorResponse := map[string]string{
+		"message": "Invalid HTTP method. Use POST for this API",
+	}
+	if req.Method != http.MethodPost {
+		jsonData, _ := json.Marshal(errorResponse)
+		res.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprint(res, string(jsonData))
+		return
+	}
+
+	bData, Rerror := io.ReadAll(req.Body)
+	if Rerror != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(res, Rerror)
+		return
+	}
+	defer req.Body.Close()
+
+	var bodyData userservice.LoginCredentials
+	UnmarshalError := json.Unmarshal(bData, &bodyData)
+	if UnmarshalError != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(res, UnmarshalError.Error())
+		return
+	}
+
+	mysqlRepo := mysql.NewDB()
+	LoginRepo := userservice.LoginService{
+		Repo: mysqlRepo,
+	}
+
+	loginResult, LoginError := LoginRepo.Login(bodyData)
+	if LoginError != nil {
+
+		switch LoginError.Error() {
+		case "user not found":
+			res.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(res, "user not found")
+			return
+
+		case "password or phone number does not match":
+			res.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(res, "password or phone number does not match")
+			return
+
+		case "server Error":
+			res.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(res, "server Error")
+			return
+
+		default:
+			res.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(res, LoginError.Error())
+			return
+		}
+
+	}
+
+	res.WriteHeader(http.StatusOK)
+	fmt.Fprint(res, *loginResult)
+	return
+
 }

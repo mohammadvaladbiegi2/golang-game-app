@@ -2,8 +2,10 @@ package mysql
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"gamegolang/entity"
+	userservice "gamegolang/service/user_service"
 )
 
 func (d *MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
@@ -13,7 +15,7 @@ func (d *MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
 	var update_at []uint8
 
 	result := d.db.QueryRow(query, phoneNumber)
-	err := result.Scan(&user.ID, &user.Name, &user.PhoneNumber, &create_at, &update_at)
+	err := result.Scan(&user.ID, &user.Name, &user.PhoneNumber, &create_at, &update_at, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return true, nil
@@ -38,4 +40,21 @@ func (d *MySQLDB) Register(u entity.User) (*entity.User, error) {
 		Name:        u.Name,
 		PhoneNumber: u.PhoneNumber,
 	}, nil
+}
+
+func (d *MySQLDB) FindUserDataByPhoneNumber(phoneNumber string) (*userservice.LoginCredentials, error) {
+	query := `select phone_number, password from user where phone_number = ?`
+	user := userservice.LoginCredentials{}
+
+	result := d.db.QueryRow(query, phoneNumber)
+	err := result.Scan(&user.PhoneNumber, &user.Password)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("user not found")
+		}
+
+		return nil, fmt.Errorf("server Error %v", err)
+	}
+
+	return &user, nil
 }

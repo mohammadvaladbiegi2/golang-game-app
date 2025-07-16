@@ -10,14 +10,26 @@ type RegisterResponse struct {
 	User entity.User
 }
 
-type Repository interface {
+type RegisterRepository interface {
 	IsPhoneNumberUnique(phoneNumber string) (bool, error)
 	Register(u entity.User) (*entity.User, error)
-	Login(u LoginRequest) (*bool, error)
 }
 
-type Service struct {
-	Repo Repository
+type LoginCredentials struct {
+	PhoneNumber string `json:"phone_number"`
+	Password    string `json:"password"`
+}
+
+type LoginRepository interface {
+	FindUserDataByPhoneNumber(phoneNumber string) (*LoginCredentials, error)
+}
+
+type RegisterService struct {
+	Repo RegisterRepository
+}
+
+type LoginService struct {
+	Repo LoginRepository
 }
 
 type RegisterRequest struct {
@@ -26,12 +38,7 @@ type RegisterRequest struct {
 	Password    string `json:"password"`
 }
 
-type LoginRequest struct {
-	PhoneNumber string `json:"phone_number"`
-	Password    string `json:"password"`
-}
-
-func (s Service) Register(req RegisterRequest) (*entity.User, error) {
+func (s RegisterService) Register(req RegisterRequest) (*entity.User, error) {
 	// TODO - we should verify phone number by verification code
 
 	// validate phone number
@@ -76,11 +83,20 @@ func (s Service) Register(req RegisterRequest) (*entity.User, error) {
 	return createdUser, nil
 }
 
-func (s Service) Login(req LoginRequest) (*bool, error) {
-	//	TODO check phone number exist and get User
-	//	TODO check password
-	//	TODO return status
+func (s LoginService) Login(req LoginCredentials) (*bool, error) {
+
+	userData, FindPhoneError := s.Repo.FindUserDataByPhoneNumber(req.PhoneNumber)
 	status := new(bool)
+	*status = false
+	if FindPhoneError != nil {
+		return status, FindPhoneError
+	}
+
+	if userData.Password != req.Password {
+		*status = false
+		return status, fmt.Errorf("password or phone number does not match")
+	}
+
 	*status = true
 	return status, nil
 }
