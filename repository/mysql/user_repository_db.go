@@ -58,3 +58,21 @@ func (d *MySQLDB) FindUserDataByPhoneNumber(phoneNumber string) (*userservice.Lo
 
 	return &user, nil
 }
+
+func (d *MySQLDB) GetProfileByID(userID userservice.GetProfileRequest) (*userservice.GetProfileResponse, error) {
+	query := `select name from user where id = ?`
+	fmt.Println("run query")
+	userName := userservice.GetProfileResponse{}
+	result := d.db.QueryRow(query, userID.ID)
+	err := result.Scan(&userName.Name)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("user not found")
+		}
+
+		return nil, fmt.Errorf("server Error %v", err)
+	}
+
+	return &userName, nil
+}

@@ -17,6 +17,7 @@ func main() {
 	mux.HandleFunc("/sign-up", RegisterUser)
 	mux.HandleFunc("/create-category", CreateCategory)
 	mux.HandleFunc("/login", Login)
+	mux.HandleFunc("/profile", GetProfile)
 	fmt.Println("Server starting on port 5000...")
 	if err := http.ListenAndServe(":5000", mux); err != nil {
 		fmt.Printf("Server error: %v\n", err)
@@ -222,6 +223,63 @@ func Login(res http.ResponseWriter, req *http.Request) {
 
 	res.WriteHeader(http.StatusOK)
 	fmt.Fprint(res, *loginResult)
+	return
+
+}
+
+func GetProfile(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
+	errorResponse := map[string]string{
+		"message": "Invalid HTTP method. Use GET for this API",
+	}
+	if req.Method != http.MethodGet {
+		jsonData, _ := json.Marshal(errorResponse)
+		res.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprint(res, string(jsonData))
+		return
+	}
+	bdata, err := io.ReadAll(req.Body)
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(res, string(bdata))
+		return
+	}
+	defer req.Body.Close()
+
+	var bodyData userservice.GetProfileRequest
+	marshalError := json.Unmarshal(bdata, &bodyData)
+	if marshalError != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(res, marshalError.Error())
+		return
+	}
+	mysqlRepo := mysql.NewDB()
+	LoginRepo := userservice.LoginService{
+		Repo: mysqlRepo,
+	}
+
+	userName, profileError := LoginRepo.GetProfile(bodyData)
+	if profileError != nil {
+		switch profileError.Error() {
+		case "user ID is required":
+			res.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(res, "user ID is required")
+			return
+		default:
+			res.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(res, profileError.Error())
+			return
+		}
+	}
+
+	response := struct {
+		Name string
+	}{
+		Name: userName.Name,
+	}
+
+	res.WriteHeader(http.StatusCreated)
+	json.NewEncoder(res).Encode(response)
 	return
 
 }

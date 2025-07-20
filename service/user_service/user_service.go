@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"gamegolang/entity"
 	"gamegolang/pkg/phone_number"
+	"hash/fnv"
+	"strconv"
 )
 
 type RegisterResponse struct {
@@ -22,6 +24,7 @@ type LoginCredentials struct {
 
 type LoginRepository interface {
 	FindUserDataByPhoneNumber(phoneNumber string) (*LoginCredentials, error)
+	GetProfileByID(userID GetProfileRequest) (*GetProfileResponse, error)
 }
 
 type RegisterService struct {
@@ -36,6 +39,20 @@ type RegisterRequest struct {
 	Name        string `json:"name"`
 	PhoneNumber string `json:"phone_number"`
 	Password    string `json:"password"`
+}
+
+type GetProfileRequest struct {
+	ID uint `json:"id"`
+}
+
+type GetProfileResponse struct {
+	Name string `json:"name"`
+}
+
+func hash(s string) int {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return int(h.Sum32())
 }
 
 func (s RegisterService) Register(req RegisterRequest) (*entity.User, error) {
@@ -70,7 +87,7 @@ func (s RegisterService) Register(req RegisterRequest) (*entity.User, error) {
 		ID:          0,
 		PhoneNumber: req.PhoneNumber,
 		Name:        req.Name,
-		Password:    req.Password,
+		Password:    strconv.Itoa(hash(req.Password)),
 	}
 
 	// create new user in storage
@@ -92,11 +109,26 @@ func (s LoginService) Login(req LoginCredentials) (*bool, error) {
 		return status, FindPhoneError
 	}
 
-	if userData.Password != req.Password {
+	if userData.Password != strconv.Itoa(hash(req.Password)) {
 		*status = false
 		return status, fmt.Errorf("password or phone number does not match")
 	}
 
 	*status = true
 	return status, nil
+}
+
+func (s LoginService) GetProfile(userID GetProfileRequest) (*GetProfileResponse, error) {
+	fmt.Println("GetProfile")
+	fmt.Println(userID)
+	if userID.ID <= 0 {
+		return nil, fmt.Errorf("user ID is required")
+	}
+
+	username, uError := s.Repo.GetProfileByID(userID)
+	if uError != nil {
+		return nil, uError
+	}
+
+	return username, nil
 }
