@@ -39,6 +39,7 @@ func (d *MySQLDB) Register(u entity.User) (*entity.User, error) {
 		ID:          uint(id),
 		Name:        u.Name,
 		PhoneNumber: u.PhoneNumber,
+		Password:    u.Password,
 	}, nil
 }
 
@@ -60,11 +61,10 @@ func (d *MySQLDB) FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, e
 	return &user, nil
 }
 
-func (d *MySQLDB) GetProfileByID(userID userservice.GetProfileRequest) (*userservice.GetProfileResponse, error) {
+func (d *MySQLDB) GetProfileByID(userID uint) (*userservice.GetProfileResponse, error) {
 	query := `select name from user where id = ?`
-	fmt.Println("run query")
 	userName := userservice.GetProfileResponse{}
-	result := d.db.QueryRow(query, userID.ID)
+	result := d.db.QueryRow(query, userID)
 	err := result.Scan(&userName.Name)
 
 	if err != nil {

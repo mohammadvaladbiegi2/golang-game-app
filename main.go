@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"gamegolang/pkg/jwt"
 	"gamegolang/repository/mysql"
 	"gamegolang/service/category_service"
 	userservice "gamegolang/service/user_service"
@@ -25,6 +26,9 @@ func main() {
 }
 
 func RegisterUser(res http.ResponseWriter, req *http.Request) {
+
+	res.Header().Set("Content-Type", "application/json")
+
 	errorResponse := map[string]string{
 		"message": "Invalid HTTP method. Use POST for this API",
 	}
@@ -240,27 +244,29 @@ func GetProfile(res http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(res, string(jsonData))
 		return
 	}
-	bdata, err := io.ReadAll(req.Body)
-	if err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(res, string(bdata))
-		return
-	}
-	defer req.Body.Close()
 
-	var bodyData userservice.GetProfileRequest
-	marshalError := json.Unmarshal(bdata, &bodyData)
-	if marshalError != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(res, marshalError.Error())
+	AuthorizationToken := req.Header.Get("Authorization")
+
+	if AuthorizationToken == "" {
+		res.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(res, "You do not have access")
 		return
 	}
+
+	stringAuthorization := AuthorizationToken[7:]
+	VerifyResult, vError := jwt.VerifyToken(stringAuthorization)
+	if vError != nil {
+		res.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(res, vError.Error())
+		return
+	}
+
 	mysqlRepo := mysql.NewDB()
 	LoginRepo := userservice.LoginService{
 		Repo: mysqlRepo,
 	}
 
-	userName, profileError := LoginRepo.GetProfile(bodyData)
+	userName, profileError := LoginRepo.GetProfile(VerifyResult.ID)
 	if profileError != nil {
 		switch profileError.Error() {
 		case "user ID is required":

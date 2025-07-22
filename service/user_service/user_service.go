@@ -27,7 +27,7 @@ type LoginCredentials struct {
 
 type LoginRepository interface {
 	FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, error)
-	GetProfileByID(userID GetProfileRequest) (*GetProfileResponse, error)
+	GetProfileByID(userID uint) (*GetProfileResponse, error)
 }
 
 type RegisterService struct {
@@ -42,10 +42,6 @@ type RegisterRequest struct {
 	Name        string `json:"name"`
 	PhoneNumber string `json:"phone_number"`
 	Password    string `json:"password"`
-}
-
-type GetProfileRequest struct {
-	ID uint `json:"id"`
 }
 
 type GetProfileResponse struct {
@@ -114,7 +110,7 @@ func (s LoginService) Login(req LoginCredentials) (string, error) {
 		return "", fmt.Errorf("password or phone number does not match")
 	}
 
-	token, tError := jwt.BulidToken(userData.Name, userData.ID)
+	token, tError := jwt.BuildToken(userData.Name, userData.ID)
 	if tError != nil {
 		return "", fmt.Errorf("error creating token")
 	}
@@ -122,10 +118,9 @@ func (s LoginService) Login(req LoginCredentials) (string, error) {
 	return token, nil
 }
 
-func (s LoginService) GetProfile(userID GetProfileRequest) (*GetProfileResponse, error) {
-	fmt.Println("GetProfile")
-	fmt.Println(userID)
-	if userID.ID <= 0 {
+func (s LoginService) GetProfile(userID uint) (*GetProfileResponse, error) {
+
+	if userID <= 0 {
 		return nil, fmt.Errorf("user ID is required")
 	}
 
