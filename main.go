@@ -96,7 +96,7 @@ func RegisterUser(res http.ResponseWriter, req *http.Request) {
 		ID:          respons.ID,
 		Name:        respons.Name,
 		PhoneNumber: respons.PhoneNumber,
-		Password:    "*********",
+		Password:    respons.Password,
 	}
 
 	res.WriteHeader(http.StatusCreated)
@@ -194,7 +194,7 @@ func Login(res http.ResponseWriter, req *http.Request) {
 		Repo: mysqlRepo,
 	}
 
-	loginResult, LoginError := LoginRepo.Login(bodyData)
+	token, LoginError := LoginRepo.Login(bodyData)
 	if LoginError != nil {
 
 		switch LoginError.Error() {
@@ -221,8 +221,10 @@ func Login(res http.ResponseWriter, req *http.Request) {
 
 	}
 
+	response := fmt.Sprintf(`{"token":"%s"}`, token)
+
 	res.WriteHeader(http.StatusOK)
-	fmt.Fprint(res, *loginResult)
+	fmt.Fprint(res, response)
 	return
 
 }

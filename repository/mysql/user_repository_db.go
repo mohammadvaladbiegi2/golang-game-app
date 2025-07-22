@@ -42,12 +42,13 @@ func (d *MySQLDB) Register(u entity.User) (*entity.User, error) {
 	}, nil
 }
 
-func (d *MySQLDB) FindUserDataByPhoneNumber(phoneNumber string) (*userservice.LoginCredentials, error) {
-	query := `select phone_number, password from user where phone_number = ?`
-	user := userservice.LoginCredentials{}
-
+func (d *MySQLDB) FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, error) {
+	query := `select * from user where phone_number = ?`
+	user := entity.User{}
+	var create_at []uint8
+	var update_at []uint8
 	result := d.db.QueryRow(query, phoneNumber)
-	err := result.Scan(&user.PhoneNumber, &user.Password)
+	err := result.Scan(&user.ID, &user.Name, &create_at, &update_at, &user.PhoneNumber, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errors.New("user not found")

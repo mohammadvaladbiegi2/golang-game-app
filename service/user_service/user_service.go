@@ -1,8 +1,11 @@
 package userservice
 
+// TODO add jwt
+
 import (
 	"fmt"
 	"gamegolang/entity"
+	"gamegolang/pkg/jwt"
 	"gamegolang/pkg/phone_number"
 	"hash/fnv"
 	"strconv"
@@ -23,7 +26,7 @@ type LoginCredentials struct {
 }
 
 type LoginRepository interface {
-	FindUserDataByPhoneNumber(phoneNumber string) (*LoginCredentials, error)
+	FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, error)
 	GetProfileByID(userID GetProfileRequest) (*GetProfileResponse, error)
 }
 
@@ -100,22 +103,23 @@ func (s RegisterService) Register(req RegisterRequest) (*entity.User, error) {
 	return createdUser, nil
 }
 
-func (s LoginService) Login(req LoginCredentials) (*bool, error) {
+func (s LoginService) Login(req LoginCredentials) (string, error) {
 
 	userData, FindPhoneError := s.Repo.FindUserDataByPhoneNumber(req.PhoneNumber)
-	status := new(bool)
-	*status = false
 	if FindPhoneError != nil {
-		return status, FindPhoneError
+		return "", FindPhoneError
 	}
 
 	if userData.Password != strconv.Itoa(hash(req.Password)) {
-		*status = false
-		return status, fmt.Errorf("password or phone number does not match")
+		return "", fmt.Errorf("password or phone number does not match")
 	}
 
-	*status = true
-	return status, nil
+	token, tError := jwt.BulidToken(userData.Name, userData.ID)
+	if tError != nil {
+		return "", fmt.Errorf("error creating token")
+	}
+
+	return token, nil
 }
 
 func (s LoginService) GetProfile(userID GetProfileRequest) (*GetProfileResponse, error) {
