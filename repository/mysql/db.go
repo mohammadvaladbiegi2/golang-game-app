@@ -2,16 +2,19 @@ package mysql
 
 import (
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type MySQLDB struct {
 	db *sql.DB
 }
 
+// docker := "gameapp:password@(localhost:3308)/gameapp_db"
+
 func NewDB() *MySQLDB {
-	db, err := sql.Open("mysql", "gameapp:gameappt0lk2o20@(localhost:3308)/gameapp_db")
+	db, err := sql.Open("mysql", "root:@(localhost:3306)/gameapp_db")
 	if err != nil {
 		panic(err)
 	}

@@ -3,9 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"gamegolang/httpserver"
 	"gamegolang/pkg/jwt"
 	"gamegolang/repository/mysql"
-	"gamegolang/service/category_service"
+	categoryservice "gamegolang/service/category_service"
 	userservice "gamegolang/service/user_service"
 	"io"
 	"net/http"
@@ -13,16 +14,18 @@ import (
 
 func main() {
 
-	mux := http.NewServeMux()
+	// mux := http.NewServeMux()
 
-	mux.HandleFunc("/sign-up", RegisterUser)
-	mux.HandleFunc("/create-category", CreateCategory)
-	mux.HandleFunc("/login", Login)
-	mux.HandleFunc("/profile", GetProfile)
-	fmt.Println("Server starting on port 5000...")
-	if err := http.ListenAndServe(":5000", mux); err != nil {
-		fmt.Printf("Server error: %v\n", err)
-	}
+	// mux.HandleFunc("/sign-up", RegisterUser)
+	// mux.HandleFunc("/create-category", CreateCategory)
+	// mux.HandleFunc("/login", Login)
+	// mux.HandleFunc("/profile", GetProfile)
+	// fmt.Println("Server starting on port 5000...")
+	// if err := http.ListenAndServe(":5000", mux); err != nil {
+	// 	fmt.Printf("Server error: %v\n", err)
+	// }
+
+	httpserver.Server()
 }
 
 func RegisterUser(res http.ResponseWriter, req *http.Request) {
