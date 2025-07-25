@@ -2,7 +2,8 @@ package httpserver
 
 import (
 	"errors"
-	"gamegolang/httpserver/httphandler"
+	authhttphandler "gamegolang/httpserver/httphandler/auth-http-handler"
+	userhttphandler "gamegolang/httpserver/httphandler/user-http-handler"
 	"log/slog"
 	"net/http"
 
@@ -12,11 +13,10 @@ import (
 func Server() {
 	e := echo.New()
 
-	// Routes
-	e.GET("/", httphandler.Hello)
+	e.GET("/profile", userhttphandler.GetProfile)
+	e.POST("/register", authhttphandler.Register)
 
-	// Start server
-	if err := e.Start(":8080"); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err := e.Start(":5000"); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("failed to start server", "error", err)
 	}
 
