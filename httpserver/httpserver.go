@@ -20,6 +20,7 @@ func Server() {
 
 	e.GET("/profile", userhttphandler.GetProfile)
 	e.POST("/register", authhttphandler.Register)
+	e.POST("/login", authhttphandler.Login)
 
 	if err := e.Start(":5000"); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("failed to start server", "error", err)
