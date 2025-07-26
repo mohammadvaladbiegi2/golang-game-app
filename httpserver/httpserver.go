@@ -13,6 +13,11 @@ import (
 func Server() {
 	e := echo.New()
 
+	// userGroup := e.Group("/users")
+	// userGroup.Get("/add",handler)   /users/add
+	// userGroup.Get("/remove",handler) /users/remove
+	// userGroup.POST("/create",handler) /users/create
+
 	e.GET("/profile", userhttphandler.GetProfile)
 	e.POST("/register", authhttphandler.Register)
 
