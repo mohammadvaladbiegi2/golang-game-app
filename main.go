@@ -14,9 +14,7 @@ func main() {
 
 	// mux := http.NewServeMux()
 
-	// mux.HandleFunc("/sign-up", RegisterUser)
 	// mux.HandleFunc("/create-category", CreateCategory)
-	// mux.HandleFunc("/login", Login)
 	// fmt.Println("Server starting on port 5000...")
 	// if err := http.ListenAndServe(":5000", mux); err != nil {
 	// 	fmt.Printf("Server error: %v\n", err)
