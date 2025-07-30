@@ -23,30 +23,8 @@ func Login(c echo.Context) error {
 	}
 
 	token, LoginError := LoginRepo.Login(bodyData)
-	if LoginError != nil {
-
-		switch LoginError.Error() {
-		case "user not found":
-			return c.JSON(http.StatusUnauthorized, echo.Map{
-				"message": "user not found",
-			})
-
-		case "password or phone number does not match":
-			return c.JSON(http.StatusUnauthorized, echo.Map{
-				"message": "password or phone number does not match",
-			})
-
-		case "server Error":
-			return c.JSON(http.StatusInternalServerError, echo.Map{
-				"message": "server Error",
-			})
-
-		default:
-			return c.JSON(http.StatusInternalServerError, echo.Map{
-				"message": LoginError.Error(),
-			})
-		}
-
+	if LoginError.HaveError() {
+		return c.JSON(LoginError.MetaDataError().StatusCode, LoginError.Jsonmessage())
 	}
 
 	return c.JSON(http.StatusOK, echo.Map{

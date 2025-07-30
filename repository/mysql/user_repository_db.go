@@ -2,18 +2,18 @@ package mysql
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"gamegolang/entity"
 	"gamegolang/pkg/richerror"
 	userservice "gamegolang/service/user_service"
+	"time"
 )
 
 func (d *MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
 	query := `select * from user where phone_number = ?`
 	user := entity.User{}
-	var create_at []uint8
-	var update_at []uint8
+	var create_at time.Time
+	var update_at time.Time
 
 	result := d.db.QueryRow(query, phoneNumber)
 	err := result.Scan(&user.ID, &user.Name, &user.PhoneNumber, &create_at, &update_at, &user.Password)
@@ -24,7 +24,6 @@ func (d *MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
 
 		return false, err
 	}
-	fmt.Println(user, string(create_at), string(update_at))
 	return false, nil
 }
 
@@ -44,22 +43,35 @@ func (d *MySQLDB) Register(u entity.User) (*entity.User, error) {
 	}, nil
 }
 
-func (d *MySQLDB) FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, error) {
+func (d *MySQLDB) FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, richerror.RichError) {
 	query := `select * from user where phone_number = ?`
 	user := entity.User{}
-	var create_at []uint8
-	var update_at []uint8
+	var create_at time.Time
+	var update_at time.Time
 	result := d.db.QueryRow(query, phoneNumber)
 	err := result.Scan(&user.ID, &user.Name, &create_at, &update_at, &user.PhoneNumber, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.New("user not found")
+
+			return nil, richerror.NewError(
+				err,
+				404,
+				"user not found",
+				nil,
+			)
 		}
 
-		return nil, fmt.Errorf("server Error %v", err)
+		return nil, richerror.NewError(
+			err,
+			500,
+			"server error",
+			map[string]interface{}{
+				"method": "GetProfileByID",
+			},
+		)
 	}
 
-	return &user, nil
+	return &user, richerror.RichError{}
 }
 
 func (d *MySQLDB) GetProfileByID(userID uint) (*userservice.GetProfileResponse, richerror.RichError) {

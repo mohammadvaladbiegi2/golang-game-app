@@ -27,7 +27,7 @@ type LoginCredentials struct {
 }
 
 type LoginRepository interface {
-	FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, error)
+	FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, richerror.RichError)
 	GetProfileByID(userID uint) (*GetProfileResponse, richerror.RichError)
 }
 
@@ -100,25 +100,24 @@ func (s RegisterService) Register(req RegisterRequest) (*entity.User, error) {
 	return createdUser, nil
 }
 
-func (s LoginService) Login(req LoginCredentials) (string, error) {
+func (s LoginService) Login(req LoginCredentials) (string, richerror.RichError) {
 
 	// TODO add rich error to project
-
 	userData, FindPhoneError := s.Repo.FindUserDataByPhoneNumber(req.PhoneNumber)
-	if FindPhoneError != nil {
+	if FindPhoneError.HaveError() {
 		return "", FindPhoneError
 	}
 
 	if userData.Password != strconv.Itoa(hash(req.Password)) {
-		return "", fmt.Errorf("password or phone number does not match")
+		return "", richerror.NewError(403, "password or phone number does not match")
 	}
 
 	token, tError := jwt.BuildToken(userData.Name, userData.ID)
 	if tError.HaveError() {
-		return "", fmt.Errorf("error creating token")
+		return "", tError
 	}
 
-	return token, nil
+	return token, richerror.RichError{}
 }
 
 func (s LoginService) GetProfile(userID uint) (*GetProfileResponse, richerror.RichError) {
