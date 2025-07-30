@@ -30,12 +30,9 @@ func GetProfile(c echo.Context) error {
 
 	userName, profileError := LoginRepo.GetProfile(VerifyResult.ID)
 	if profileError != nil {
-		switch profileError.Error() {
-		case "user ID is required":
-			return c.String(http.StatusUnauthorized, "user ID is required")
-		default:
-			return c.String(http.StatusInternalServerError, profileError.Error())
-		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"message": profileError.Error(),
+		})
 	}
 
 	return c.JSON(http.StatusOK, echo.Map{"Name": userName.Name})

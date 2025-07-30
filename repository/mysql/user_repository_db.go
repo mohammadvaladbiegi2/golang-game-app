@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"gamegolang/entity"
+	"gamegolang/pkg/richerror"
 	userservice "gamegolang/service/user_service"
 )
 
@@ -69,10 +70,22 @@ func (d *MySQLDB) GetProfileByID(userID uint) (*userservice.GetProfileResponse, 
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.New("user not found")
+			return nil, richerror.NewError(richerror.RichError{
+				WrappedError: err,
+				StatusCode:   404,
+				Message:      "user not found",
+				MetaData:     nil,
+			})
 		}
 
-		return nil, fmt.Errorf("server Error %v", err)
+		return nil, richerror.NewError(richerror.RichError{
+			WrappedError: err,
+			StatusCode:   500,
+			Message:      "server error",
+			MetaData: map[string]interface{}{
+				"method": "GetProfileByID",
+			},
+		})
 	}
 
 	return &userName, nil

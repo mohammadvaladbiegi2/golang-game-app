@@ -7,6 +7,7 @@ import (
 	"gamegolang/entity"
 	"gamegolang/pkg/jwt"
 	"gamegolang/pkg/phone_number"
+	"gamegolang/pkg/richerror"
 	"hash/fnv"
 	"strconv"
 )
@@ -121,7 +122,12 @@ func (s LoginService) Login(req LoginCredentials) (string, error) {
 func (s LoginService) GetProfile(userID uint) (*GetProfileResponse, error) {
 
 	if userID <= 0 {
-		return nil, fmt.Errorf("user ID is required")
+		return nil, richerror.NewError(richerror.RichError{
+			WrappedError: nil,
+			StatusCode:   400,
+			Message:      "user ID is requir",
+			MetaData:     nil,
+		})
 	}
 
 	username, uError := s.Repo.GetProfileByID(userID)
