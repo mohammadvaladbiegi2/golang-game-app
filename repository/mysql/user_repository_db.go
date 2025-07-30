@@ -2,14 +2,13 @@ package mysql
 
 import (
 	"database/sql"
-	"fmt"
 	"gamegolang/entity"
 	"gamegolang/pkg/richerror"
 	userservice "gamegolang/service/user_service"
 	"time"
 )
 
-func (d *MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
+func (d *MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, richerror.RichError) {
 	query := `select * from user where phone_number = ?`
 	user := entity.User{}
 	var create_at time.Time
@@ -19,18 +18,32 @@ func (d *MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
 	err := result.Scan(&user.ID, &user.Name, &user.PhoneNumber, &create_at, &update_at, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return true, nil
+			return true, richerror.RichError{}
 		}
 
-		return false, err
+		return false, richerror.NewError(
+			err,
+			500,
+			"server error",
+			map[string]interface{}{
+				"method": "IsPhoneNumberUnique",
+			},
+		)
 	}
-	return false, nil
+	return false, richerror.RichError{}
 }
 
-func (d *MySQLDB) Register(u entity.User) (*entity.User, error) {
+func (d *MySQLDB) Register(u entity.User) (*entity.User, richerror.RichError) {
 	res, err := d.db.Exec(`INSERT INTO user (name, phone_number, password) VALUES (?, ?,?)`, u.Name, u.PhoneNumber, u.Password)
 	if err != nil {
-		return nil, fmt.Errorf("unxepected error => %w", err)
+		return nil, richerror.NewError(
+			err,
+			500,
+			"server error",
+			map[string]interface{}{
+				"method": "Register",
+			},
+		)
 	}
 
 	id, _ := res.LastInsertId()
@@ -40,7 +53,7 @@ func (d *MySQLDB) Register(u entity.User) (*entity.User, error) {
 		Name:        u.Name,
 		PhoneNumber: u.PhoneNumber,
 		Password:    u.Password,
-	}, nil
+	}, richerror.RichError{}
 }
 
 func (d *MySQLDB) FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, richerror.RichError) {

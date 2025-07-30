@@ -21,34 +21,9 @@ func Register(c echo.Context) error {
 	userRepo := userservice.RegisterService{Repo: mysqlRepo}
 
 	respons, RegisterUserError := userRepo.Register(*body)
-	if RegisterUserError != nil {
+	if RegisterUserError.HaveError() {
 
-		switch RegisterUserError.Error() {
-		case "phone number is not valid":
-			return c.JSON(http.StatusBadRequest, echo.Map{
-				"message": "phone number is not valid",
-			})
-
-		case "phone number is not unique":
-			return c.JSON(http.StatusBadRequest, echo.Map{
-				"message": "phone number is not unique",
-			})
-
-		case "password length should be greater than 8":
-			return c.JSON(http.StatusBadRequest, echo.Map{
-				"message": "password length should be greater than 8",
-			})
-
-		case "name length should be greater than 3":
-			return c.JSON(http.StatusBadRequest, echo.Map{
-				"message": "name length should be greater than 3",
-			})
-
-		default:
-			return c.JSON(http.StatusInternalServerError, echo.Map{
-				"message": RegisterUserError.Error(),
-			})
-		}
+		return c.JSON(RegisterUserError.MetaDataError().StatusCode, RegisterUserError.Jsonmessage())
 
 	}
 

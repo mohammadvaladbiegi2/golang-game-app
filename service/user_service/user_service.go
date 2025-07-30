@@ -3,7 +3,6 @@ package userservice
 // TODO add jwt
 
 import (
-	"fmt"
 	"gamegolang/entity"
 	"gamegolang/pkg/jwt"
 	"gamegolang/pkg/phone_number"
@@ -17,8 +16,8 @@ type RegisterResponse struct {
 }
 
 type RegisterRepository interface {
-	IsPhoneNumberUnique(phoneNumber string) (bool, error)
-	Register(u entity.User) (*entity.User, error)
+	IsPhoneNumberUnique(phoneNumber string) (bool, richerror.RichError)
+	Register(u entity.User) (*entity.User, richerror.RichError)
 }
 
 type LoginCredentials struct {
@@ -55,32 +54,33 @@ func hash(s string) int {
 	return int(h.Sum32())
 }
 
-func (s RegisterService) Register(req RegisterRequest) (*entity.User, error) {
+func (s RegisterService) Register(req RegisterRequest) (*entity.User, richerror.RichError) {
 	// TODO - we should verify phone number by verification code
 
 	// validate phone number
 	if !phone_number.IsValidPhoneNumber(req.PhoneNumber) {
 
-		return nil, fmt.Errorf("phone number is not valid")
+		return nil, richerror.NewError(400, "phone number is not valid")
 	}
 
 	// check uniqueness of phone number
-	if isUnique, err := s.Repo.IsPhoneNumberUnique(req.PhoneNumber); err != nil || !isUnique {
-		if err != nil {
-			return nil, fmt.Errorf("unexpected error: %w", err)
+	isUnique, Unique := s.Repo.IsPhoneNumberUnique(req.PhoneNumber)
+	if Unique.HaveError() || !isUnique {
+		if Unique.HaveError() {
+			return nil, Unique
 		}
 
 		if !isUnique {
-			return nil, fmt.Errorf("phone number is not unique")
+			return nil, richerror.NewError(400, "phone number is not unique")
 		}
 	}
 
 	// validate name
 	if len(req.Name) < 3 {
-		return nil, fmt.Errorf("name length should be greater than 3")
+		return nil, richerror.NewError(400, "name length should be greater than 3")
 	}
 	if len(req.Password) < 6 {
-		return nil, fmt.Errorf("password length should be greater than 8")
+		return nil, richerror.NewError(400, "password length should be greater than 8")
 	}
 
 	user := entity.User{
@@ -92,12 +92,12 @@ func (s RegisterService) Register(req RegisterRequest) (*entity.User, error) {
 
 	// create new user in storage
 	createdUser, err := s.Repo.Register(user)
-	if err != nil {
-		return nil, fmt.Errorf("unexpected error: %w", err)
+	if err.HaveError() {
+		return nil, err
 	}
 
 	// return created user
-	return createdUser, nil
+	return createdUser, richerror.RichError{}
 }
 
 func (s LoginService) Login(req LoginCredentials) (string, richerror.RichError) {

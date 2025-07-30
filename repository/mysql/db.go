@@ -14,7 +14,7 @@ type MySQLDB struct {
 // docker := "gameapp:password@(localhost:3308)/gameapp_db"
 
 func NewDB() *MySQLDB {
-	db, err := sql.Open("mysql", "root:@(localhost:3306)/gameapp_db")
+	db, err := sql.Open("mysql", "root:@(localhost:3306)/gameapp_db?parseTime=true")
 	if err != nil {
 		panic(err)
 	}
