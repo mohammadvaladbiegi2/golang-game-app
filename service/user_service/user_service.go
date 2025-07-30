@@ -28,7 +28,7 @@ type LoginCredentials struct {
 
 type LoginRepository interface {
 	FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, error)
-	GetProfileByID(userID uint) (*GetProfileResponse, error)
+	GetProfileByID(userID uint) (*GetProfileResponse, richerror.RichError)
 }
 
 type RegisterService struct {
@@ -102,6 +102,8 @@ func (s RegisterService) Register(req RegisterRequest) (*entity.User, error) {
 
 func (s LoginService) Login(req LoginCredentials) (string, error) {
 
+	// TODO add rich error to project
+
 	userData, FindPhoneError := s.Repo.FindUserDataByPhoneNumber(req.PhoneNumber)
 	if FindPhoneError != nil {
 		return "", FindPhoneError
@@ -112,28 +114,28 @@ func (s LoginService) Login(req LoginCredentials) (string, error) {
 	}
 
 	token, tError := jwt.BuildToken(userData.Name, userData.ID)
-	if tError != nil {
+	if tError.HaveError() {
 		return "", fmt.Errorf("error creating token")
 	}
 
 	return token, nil
 }
 
-func (s LoginService) GetProfile(userID uint) (*GetProfileResponse, error) {
+func (s LoginService) GetProfile(userID uint) (*GetProfileResponse, richerror.RichError) {
 
 	if userID <= 0 {
-		return nil, richerror.NewError(richerror.RichError{
-			WrappedError: nil,
-			StatusCode:   400,
-			Message:      "user ID is requir",
-			MetaData:     nil,
-		})
+		return nil, richerror.NewError(
+			nil,
+			400,
+			"user ID is requir",
+			nil,
+		)
 	}
 
 	username, uError := s.Repo.GetProfileByID(userID)
-	if uError != nil {
+	if uError.HaveError() {
 		return nil, uError
 	}
 
-	return username, nil
+	return username, richerror.RichError{}
 }

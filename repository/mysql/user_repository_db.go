@@ -62,7 +62,7 @@ func (d *MySQLDB) FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, e
 	return &user, nil
 }
 
-func (d *MySQLDB) GetProfileByID(userID uint) (*userservice.GetProfileResponse, error) {
+func (d *MySQLDB) GetProfileByID(userID uint) (*userservice.GetProfileResponse, richerror.RichError) {
 	query := `select name from user where id = ?`
 	userName := userservice.GetProfileResponse{}
 	result := d.db.QueryRow(query, userID)
@@ -70,23 +70,23 @@ func (d *MySQLDB) GetProfileByID(userID uint) (*userservice.GetProfileResponse, 
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, richerror.NewError(richerror.RichError{
-				WrappedError: err,
-				StatusCode:   404,
-				Message:      "user not found",
-				MetaData:     nil,
-			})
+			return nil, richerror.NewError(
+				err,
+				404,
+				"user not found",
+				nil,
+			)
 		}
 
-		return nil, richerror.NewError(richerror.RichError{
-			WrappedError: err,
-			StatusCode:   500,
-			Message:      "server error",
-			MetaData: map[string]interface{}{
+		return nil, richerror.NewError(
+			err,
+			500,
+			"server error",
+			map[string]interface{}{
 				"method": "GetProfileByID",
 			},
-		})
+		)
 	}
 
-	return &userName, nil
+	return &userName, richerror.RichError{}
 }

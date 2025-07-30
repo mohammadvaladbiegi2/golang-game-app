@@ -19,8 +19,8 @@ func GetProfile(c echo.Context) error {
 
 	stringAuthorization := AuthorizationToken[7:]
 	VerifyResult, vError := jwt.VerifyToken(stringAuthorization)
-	if vError != nil {
-		return c.String(http.StatusUnauthorized, "server cant decode token or token not valid")
+	if vError.HaveError() {
+		return c.JSON(vError.MetaDataError().StatusCode, vError.Jsonmessage())
 	}
 
 	mysqlRepo := mysql.NewDB()
@@ -29,10 +29,8 @@ func GetProfile(c echo.Context) error {
 	}
 
 	userName, profileError := LoginRepo.GetProfile(VerifyResult.ID)
-	if profileError != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{
-			"message": profileError.Error(),
-		})
+	if profileError.HaveError() {
+		return c.JSON(profileError.MetaDataError().StatusCode, profileError.Jsonmessage())
 	}
 
 	return c.JSON(http.StatusOK, echo.Map{"Name": userName.Name})
