@@ -9,6 +9,7 @@ import (
 	userservice "gamegolang/service/user_service"
 	"io"
 	"net/http"
+	"strings"
 )
 
 func main() {
@@ -253,8 +254,8 @@ func GetProfile(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	stringAuthorization := AuthorizationToken[7:]
-	VerifyResult, vError := jwt.VerifyToken(stringAuthorization)
+	AuthorizationToken = strings.TrimPrefix(AuthorizationToken, "Bearer ")
+	VerifyResult, vError := jwt.VerifyToken(AuthorizationToken)
 	if vError != nil {
 		res.WriteHeader(http.StatusUnauthorized)
 		fmt.Fprint(res, vError.Error())
