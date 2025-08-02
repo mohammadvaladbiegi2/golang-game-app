@@ -3,10 +3,10 @@ package userservice
 // TODO add jwt
 
 import (
-	"fmt"
 	"gamegolang/entity"
 	"gamegolang/pkg/jwt"
 	"gamegolang/pkg/phone_number"
+	"gamegolang/pkg/richerror"
 	"hash/fnv"
 	"strconv"
 )
@@ -16,8 +16,8 @@ type RegisterResponse struct {
 }
 
 type RegisterRepository interface {
-	IsPhoneNumberUnique(phoneNumber string) (bool, error)
-	Register(u entity.User) (*entity.User, error)
+	IsPhoneNumberUnique(phoneNumber string) (bool, richerror.RichError)
+	Register(u entity.User) (*entity.User, richerror.RichError)
 }
 
 type LoginCredentials struct {
@@ -26,8 +26,8 @@ type LoginCredentials struct {
 }
 
 type LoginRepository interface {
-	FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, error)
-	GetProfileByID(userID uint) (*GetProfileResponse, error)
+	FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, richerror.RichError)
+	GetProfileByID(userID uint) (*GetProfileResponse, richerror.RichError)
 }
 
 type RegisterService struct {
@@ -54,32 +54,33 @@ func hash(s string) int {
 	return int(h.Sum32())
 }
 
-func (s RegisterService) Register(req RegisterRequest) (*entity.User, error) {
+func (s RegisterService) Register(req RegisterRequest) (*entity.User, richerror.RichError) {
 	// TODO - we should verify phone number by verification code
 
 	// validate phone number
 	if !phone_number.IsValidPhoneNumber(req.PhoneNumber) {
 
-		return nil, fmt.Errorf("phone number is not valid")
+		return nil, richerror.NewError(400, "phone number is not valid")
 	}
 
 	// check uniqueness of phone number
-	if isUnique, err := s.Repo.IsPhoneNumberUnique(req.PhoneNumber); err != nil || !isUnique {
-		if err != nil {
-			return nil, fmt.Errorf("unexpected error: %w", err)
+	isUnique, Unique := s.Repo.IsPhoneNumberUnique(req.PhoneNumber)
+	if Unique.HaveError() || !isUnique {
+		if Unique.HaveError() {
+			return nil, Unique
 		}
 
 		if !isUnique {
-			return nil, fmt.Errorf("phone number is not unique")
+			return nil, richerror.NewError(400, "phone number is not unique")
 		}
 	}
 
 	// validate name
 	if len(req.Name) < 3 {
-		return nil, fmt.Errorf("name length should be greater than 3")
+		return nil, richerror.NewError(400, "name length should be greater than 3")
 	}
 	if len(req.Password) < 6 {
-		return nil, fmt.Errorf("password length should be greater than 8")
+		return nil, richerror.NewError(400, "password length should be greater than 8")
 	}
 
 	user := entity.User{
@@ -91,43 +92,49 @@ func (s RegisterService) Register(req RegisterRequest) (*entity.User, error) {
 
 	// create new user in storage
 	createdUser, err := s.Repo.Register(user)
-	if err != nil {
-		return nil, fmt.Errorf("unexpected error: %w", err)
+	if err.HaveError() {
+		return nil, err
 	}
 
 	// return created user
-	return createdUser, nil
+	return createdUser, richerror.RichError{}
 }
 
-func (s LoginService) Login(req LoginCredentials) (string, error) {
+func (s LoginService) Login(req LoginCredentials) (string, richerror.RichError) {
 
+	// TODO add rich error to project
 	userData, FindPhoneError := s.Repo.FindUserDataByPhoneNumber(req.PhoneNumber)
-	if FindPhoneError != nil {
+	if FindPhoneError.HaveError() {
 		return "", FindPhoneError
 	}
 
 	if userData.Password != strconv.Itoa(hash(req.Password)) {
-		return "", fmt.Errorf("password or phone number does not match")
+		return "", richerror.NewError(403, "password or phone number does not match")
 	}
 
 	token, tError := jwt.BuildToken(userData.Name, userData.ID)
-	if tError != nil {
-		return "", fmt.Errorf("error creating token")
+	if tError.HaveError() {
+		return "", tError
 	}
 
-	return token, nil
+	return token, richerror.RichError{}
 }
 
-func (s LoginService) GetProfile(userID uint) (*GetProfileResponse, error) {
+func (s LoginService) GetProfile(userID uint) (*GetProfileResponse, richerror.RichError) {
 
 	if userID <= 0 {
-		return nil, fmt.Errorf("user ID is required")
+		return nil, richerror.NewError(
+			nil,
+			400,
+			"user ID is requir",
+			nil,
+		)
 	}
 
 	username, uError := s.Repo.GetProfileByID(userID)
-	if uError != nil {
+	if uError.HaveError() {
 		return nil, uError
 	}
 
-	return username, nil
+	return username, richerror.RichError{}
 }

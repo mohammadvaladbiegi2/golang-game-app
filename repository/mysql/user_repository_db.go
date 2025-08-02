@@ -2,35 +2,48 @@ package mysql
 
 import (
 	"database/sql"
-	"errors"
-	"fmt"
 	"gamegolang/entity"
+	"gamegolang/pkg/richerror"
 	userservice "gamegolang/service/user_service"
+	"time"
 )
 
-func (d *MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
+func (d *MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, richerror.RichError) {
 	query := `select * from user where phone_number = ?`
 	user := entity.User{}
-	var create_at []uint8
-	var update_at []uint8
+	var create_at time.Time
+	var update_at time.Time
 
 	result := d.db.QueryRow(query, phoneNumber)
 	err := result.Scan(&user.ID, &user.Name, &user.PhoneNumber, &create_at, &update_at, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return true, nil
+			return true, richerror.RichError{}
 		}
 
-		return false, err
+		return false, richerror.NewError(
+			err,
+			500,
+			"server error",
+			map[string]interface{}{
+				"method": "IsPhoneNumberUnique",
+			},
+		)
 	}
-	fmt.Println(user, string(create_at), string(update_at))
-	return false, nil
+	return false, richerror.RichError{}
 }
 
-func (d *MySQLDB) Register(u entity.User) (*entity.User, error) {
+func (d *MySQLDB) Register(u entity.User) (*entity.User, richerror.RichError) {
 	res, err := d.db.Exec(`INSERT INTO user (name, phone_number, password) VALUES (?, ?,?)`, u.Name, u.PhoneNumber, u.Password)
 	if err != nil {
-		return nil, fmt.Errorf("unxepected error => %w", err)
+		return nil, richerror.NewError(
+			err,
+			500,
+			"server error",
+			map[string]interface{}{
+				"method": "Register",
+			},
+		)
 	}
 
 	id, _ := res.LastInsertId()
@@ -40,28 +53,41 @@ func (d *MySQLDB) Register(u entity.User) (*entity.User, error) {
 		Name:        u.Name,
 		PhoneNumber: u.PhoneNumber,
 		Password:    u.Password,
-	}, nil
+	}, richerror.RichError{}
 }
 
-func (d *MySQLDB) FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, error) {
+func (d *MySQLDB) FindUserDataByPhoneNumber(phoneNumber string) (*entity.User, richerror.RichError) {
 	query := `select * from user where phone_number = ?`
 	user := entity.User{}
-	var create_at []uint8
-	var update_at []uint8
+	var create_at time.Time
+	var update_at time.Time
 	result := d.db.QueryRow(query, phoneNumber)
 	err := result.Scan(&user.ID, &user.Name, &create_at, &update_at, &user.PhoneNumber, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.New("user not found")
+
+			return nil, richerror.NewError(
+				err,
+				404,
+				"user not found",
+				nil,
+			)
 		}
 
-		return nil, fmt.Errorf("server Error %v", err)
+		return nil, richerror.NewError(
+			err,
+			500,
+			"server error",
+			map[string]interface{}{
+				"method": "GetProfileByID",
+			},
+		)
 	}
 
-	return &user, nil
+	return &user, richerror.RichError{}
 }
 
-func (d *MySQLDB) GetProfileByID(userID uint) (*userservice.GetProfileResponse, error) {
+func (d *MySQLDB) GetProfileByID(userID uint) (*userservice.GetProfileResponse, richerror.RichError) {
 	query := `select name from user where id = ?`
 	userName := userservice.GetProfileResponse{}
 	result := d.db.QueryRow(query, userID)
@@ -69,11 +95,23 @@ func (d *MySQLDB) GetProfileByID(userID uint) (*userservice.GetProfileResponse, 
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.New("user not found")
+			return nil, richerror.NewError(
+				err,
+				404,
+				"user not found",
+				nil,
+			)
 		}
 
-		return nil, fmt.Errorf("server Error %v", err)
+		return nil, richerror.NewError(
+			err,
+			500,
+			"server error",
+			map[string]interface{}{
+				"method": "GetProfileByID",
+			},
+		)
 	}
 
-	return &userName, nil
+	return &userName, richerror.RichError{}
 }

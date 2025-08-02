@@ -1,10 +1,11 @@
 package jwt
 
 import (
-	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
+	"gamegolang/pkg/richerror"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 const hmacSampleSecret = "mamad-server"
@@ -15,7 +16,7 @@ type CustomClaims struct {
 	jwt.RegisteredClaims
 }
 
-func BuildToken(name string, id uint) (string, error) {
+func BuildToken(name string, id uint) (string, richerror.RichError) {
 	claims := CustomClaims{
 		Name: name,
 		ID:   id,
@@ -28,13 +29,13 @@ func BuildToken(name string, id uint) (string, error) {
 
 	tokenString, err := token.SignedString([]byte(hmacSampleSecret))
 	if err != nil {
-		return "", fmt.Errorf("failed to sign token: %w", err)
+		return "", richerror.NewError(err, 500, "failed to sign token", map[string]interface{}{"opration": "BuildToken"})
 	}
 
-	return tokenString, nil
+	return tokenString, richerror.RichError{}
 }
 
-func VerifyToken(tokenString string) (*CustomClaims, error) {
+func VerifyToken(tokenString string) (*CustomClaims, richerror.RichError) {
 	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -43,12 +44,12 @@ func VerifyToken(tokenString string) (*CustomClaims, error) {
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse token: %w", err)
+		return nil, richerror.NewError(err, 400, "failed to parse token", map[string]interface{}{"opration": "VerifyToken"})
 	}
 
 	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
-		return claims, nil
+		return claims, richerror.RichError{}
 	}
 
-	return nil, errors.New("invalid token")
+	return nil, richerror.NewError(err, 403, "invalid token", map[string]interface{}{"opration": "VerifyToken"})
 }
